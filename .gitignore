@@ -22,3 +22,4 @@
 /backend/.env
 /backend/.env.*
 
+.github
