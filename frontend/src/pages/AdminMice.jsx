@@ -386,7 +386,7 @@ export default function AdminMice() {
       field: 'price', 
       headerName: 'Price', 
       width: 120,
-      valueFormatter: (value) => `$${value?.toFixed(2) || 0}`
+      valueFormatter: (value) => `₱${value?.toFixed(2) || 0}`
     },
     { field: 'connection', headerName: 'Connection', width: 120 },
     {

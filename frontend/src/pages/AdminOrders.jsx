@@ -185,7 +185,7 @@ export default function AdminOrders() {
         const raw = params.value;
         const numeric = Number(raw);
         const amount = Number.isFinite(numeric) ? numeric.toFixed(2) : '0.00';
-        return `$${amount}`;
+        return `₱${amount}`;
       }
     },
     {

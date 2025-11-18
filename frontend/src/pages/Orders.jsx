@@ -211,7 +211,7 @@ export default function Orders() {
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography variant="body1">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            ₱{(item.price * item.quantity).toFixed(2)}
                           </Typography>
                           {order.isDelivered && (
                             <Button
@@ -252,17 +252,17 @@ export default function Orders() {
                       Order Total
                     </Typography>
                     <Typography variant="h6" color="primary">
-                      ${order.totalPrice.toFixed(2)}
+                      ₱{order.totalPrice.toFixed(2)}
                     </Typography>
                     <Box sx={{ mt: 1 }}>
                       <Typography variant="body2" color="text.secondary">
-                        Items: ${order.itemsPrice.toFixed(2)}
+                        Items: ₱{order.itemsPrice.toFixed(2)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Shipping: ${order.shippingPrice.toFixed(2)}
+                        Shipping: ₱{order.shippingPrice.toFixed(2)}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Tax: ${order.taxPrice.toFixed(2)}
+                        Tax: ₱{order.taxPrice.toFixed(2)}
                       </Typography>
                     </Box>
                   </Box>

@@ -80,7 +80,7 @@ export async function sendOrderConfirmationEmail(email, orderDetails) {
         ${item.quantity}
       </td>
       <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">
-        $${(item.price * item.quantity).toFixed(2)}
+        ₱${(item.price * item.quantity).toFixed(2)}
       </td>
     </tr>
   `).join('');
@@ -97,7 +97,7 @@ export async function sendOrderConfirmationEmail(email, orderDetails) {
         <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Order Details</h3>
           <p><strong>Order Number:</strong> ${orderNumber}</p>
-          <p><strong>Total:</strong> $${totalPrice.toFixed(2)}</p>
+          <p><strong>Total:</strong> ₱${totalPrice.toFixed(2)}</p>
         </div>
 
         <h3>Items Ordered</h3>
@@ -115,10 +115,10 @@ export async function sendOrderConfirmationEmail(email, orderDetails) {
         </table>
 
         <div style="margin-top: 20px; text-align: right;">
-          <p style="margin: 5px 0;"><strong>Subtotal:</strong> $${itemsPrice.toFixed(2)}</p>
-          <p style="margin: 5px 0;"><strong>Shipping:</strong> ${shippingPrice === 0 ? 'FREE' : '$' + shippingPrice.toFixed(2)}</p>
-          <p style="margin: 5px 0;"><strong>Tax:</strong> $${taxPrice.toFixed(2)}</p>
-          <p style="margin: 10px 0; font-size: 18px; color: #6ee7ff;"><strong>Total:</strong> $${totalPrice.toFixed(2)}</p>
+          <p style="margin: 5px 0;"><strong>Subtotal:</strong> ₱${itemsPrice.toFixed(2)}</p>
+          <p style="margin: 5px 0;"><strong>Shipping:</strong> ${shippingPrice === 0 ? 'FREE' : '₱' + shippingPrice.toFixed(2)}</p>
+          <p style="margin: 5px 0;"><strong>Tax:</strong> ₱${taxPrice.toFixed(2)}</p>
+          <p style="margin: 10px 0; font-size: 18px; color: #6ee7ff;"><strong>Total:</strong> ₱${totalPrice.toFixed(2)}</p>
         </div>
 
         <h3>Shipping Address</h3>
@@ -182,7 +182,7 @@ export async function sendOrderStatusUpdateEmail(email, orderDetails) {
           <h3 style="margin-top: 0;">${statusMessages[status] || 'Order status updated'}</h3>
           <p><strong>Order Number:</strong> ${orderNumber}</p>
           <p><strong>Status:</strong> ${status.toUpperCase()}</p>
-          <p><strong>Order Total:</strong> $${totalPrice.toFixed(2)}</p>
+          <p><strong>Order Total:</strong> ₱${totalPrice.toFixed(2)}</p>
         </div>
         
         ${status === 'shipped' ? `

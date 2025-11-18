@@ -179,9 +179,25 @@ function DashboardHome() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom sx={{ mb: 3 }}>
-        Dashboard Overview
-      </Typography>
+      <Box sx={{ 
+        mb: 4, 
+        pb: 3, 
+        borderBottom: '1px solid rgba(110, 231, 255, 0.2)'
+      }}>
+        <Typography variant="h4" gutterBottom sx={{ 
+          mb: 1, 
+          fontWeight: 600,
+          background: 'linear-gradient(90deg, #6ee7ff 0%, #4caf50 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>
+          Dashboard Overview
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+          Monitor your business metrics and performance
+        </Typography>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
@@ -191,65 +207,112 @@ function DashboardHome() {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: '#1a237e' }}>
-            <CardContent>
+          <Card sx={{ 
+            bgcolor: 'rgba(0, 0, 0, 0.4)', 
+            border: '1px solid rgba(110, 231, 255, 0.2)',
+            borderRadius: 2,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              border: '1px solid rgba(110, 231, 255, 0.5)',
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 24px rgba(110, 231, 255, 0.15)'
+            }
+          }}>
+            <CardContent sx={{ position: 'relative', overflow: 'hidden' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="text.secondary" variant="body2">Total Orders</Typography>
-                  <Typography variant="h4" sx={{ color: '#6ee7ff' }}>{stats.totalOrders}</Typography>
+                <Box sx={{ zIndex: 2 }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ mb: 1, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Total Orders</Typography>
+                  <Typography variant="h3" sx={{ color: '#6ee7ff', fontWeight: 600 }}>{stats.totalOrders}</Typography>
                 </Box>
-                <ShoppingCartIcon sx={{ fontSize: 40, color: '#6ee7ff', opacity: 0.5 }} />
+                <ShoppingCartIcon sx={{ fontSize: 60, color: '#6ee7ff', opacity: 0.15, position: 'absolute', right: 16, top: 16 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: '#1b5e20' }}>
-            <CardContent>
+          <Card sx={{ 
+            bgcolor: 'rgba(0, 0, 0, 0.4)', 
+            border: '1px solid rgba(76, 175, 80, 0.2)',
+            borderRadius: 2,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              border: '1px solid rgba(76, 175, 80, 0.5)',
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 24px rgba(76, 175, 80, 0.15)'
+            }
+          }}>
+            <CardContent sx={{ position: 'relative', overflow: 'hidden' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="text.secondary" variant="body2">Total Revenue</Typography>
-                  <Typography variant="h4" sx={{ color: '#4caf50' }}>${stats.totalRevenue.toFixed(2)}</Typography>
+                <Box sx={{ zIndex: 2 }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ mb: 1, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Total Revenue</Typography>
+                  <Typography variant="h3" sx={{ color: '#4caf50', fontWeight: 600 }}>₱{stats.totalRevenue.toFixed(2)}</Typography>
                 </Box>
-                <AttachMoneyIcon sx={{ fontSize: 40, color: '#4caf50', opacity: 0.5 }} />
+                <AttachMoneyIcon sx={{ fontSize: 60, color: '#4caf50', opacity: 0.15, position: 'absolute', right: 16, top: 16 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: '#4a148c' }}>
-            <CardContent>
+          <Card sx={{ 
+            bgcolor: 'rgba(0, 0, 0, 0.4)', 
+            border: '1px solid rgba(206, 147, 216, 0.2)',
+            borderRadius: 2,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              border: '1px solid rgba(206, 147, 216, 0.5)',
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 24px rgba(206, 147, 216, 0.15)'
+            }
+          }}>
+            <CardContent sx={{ position: 'relative', overflow: 'hidden' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="text.secondary" variant="body2">Total Products</Typography>
-                  <Typography variant="h4" sx={{ color: '#ce93d8' }}>{stats.totalProducts}</Typography>
+                <Box sx={{ zIndex: 2 }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ mb: 1, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Total Products</Typography>
+                  <Typography variant="h3" sx={{ color: '#ce93d8', fontWeight: 600 }}>{stats.totalProducts}</Typography>
                 </Box>
-                <InventoryIcon sx={{ fontSize: 40, color: '#ce93d8', opacity: 0.5 }} />
+                <InventoryIcon sx={{ fontSize: 60, color: '#ce93d8', opacity: 0.15, position: 'absolute', right: 16, top: 16 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ bgcolor: '#e65100' }}>
-            <CardContent>
+          <Card sx={{ 
+            bgcolor: 'rgba(0, 0, 0, 0.4)', 
+            border: '1px solid rgba(255, 152, 0, 0.2)',
+            borderRadius: 2,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              border: '1px solid rgba(255, 152, 0, 0.5)',
+              transform: 'translateY(-4px)',
+              boxShadow: '0 8px 24px rgba(255, 152, 0, 0.15)'
+            }
+          }}>
+            <CardContent sx={{ position: 'relative', overflow: 'hidden' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography color="text.secondary" variant="body2">Total Users</Typography>
-                  <Typography variant="h4" sx={{ color: '#ff9800' }}>{stats.totalUsers}</Typography>
+                <Box sx={{ zIndex: 2 }}>
+                  <Typography color="text.secondary" variant="body2" sx={{ mb: 1, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: 1 }}>Total Users</Typography>
+                  <Typography variant="h3" sx={{ color: '#ff9800', fontWeight: 600 }}>{stats.totalUsers}</Typography>
                 </Box>
-                <PeopleIcon sx={{ fontSize: 40, color: '#ff9800', opacity: 0.5 }} />
+                <PeopleIcon sx={{ fontSize: 60, color: '#ff9800', opacity: 0.15, position: 'absolute', right: 16, top: 16 }} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ 
+        p: 3, 
+        mb: 3, 
+        bgcolor: 'rgba(0, 0, 0, 0.4)', 
+        border: '1px solid rgba(110, 231, 255, 0.1)',
+        borderRadius: 2,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+      }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Typography variant="h5">Sales Chart</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 500, color: '#6ee7ff' }}>Sales Chart</Typography>
           
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
             <TextField
@@ -259,7 +322,13 @@ function DashboardHome() {
               value={dateRange.startDate}
               onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
               InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 150 }}
+              sx={{ 
+                minWidth: 150,
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'rgba(0, 0, 0, 0.3)',
+                  '&:hover fieldset': { borderColor: '#6ee7ff' }
+                }
+              }}
             />
             <TextField
               label="End Date"
@@ -268,10 +337,22 @@ function DashboardHome() {
               value={dateRange.endDate}
               onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
               InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 150 }}
+              sx={{ 
+                minWidth: 150,
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'rgba(0, 0, 0, 0.3)',
+                  '&:hover fieldset': { borderColor: '#6ee7ff' }
+                }
+              }}
             />
             
-            <FormControl size="small" sx={{ minWidth: 120 }}>
+            <FormControl size="small" sx={{ 
+              minWidth: 120,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(0, 0, 0, 0.3)',
+                '&:hover fieldset': { borderColor: '#6ee7ff' }
+              }
+            }}>
               <InputLabel>Chart Type</InputLabel>
               <Select value={chartType} label="Chart Type" onChange={(e) => setChartType(e.target.value)}>
                 <MenuItem value="line">Line Chart</MenuItem>
@@ -290,7 +371,7 @@ function DashboardHome() {
               <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} labelStyle={{ color: '#6ee7ff' }} />
               <Legend />
               <Line type="monotone" dataKey="sales" stroke="#6ee7ff" strokeWidth={2} name="Orders" dot={{ fill: '#6ee7ff', r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="revenue" stroke="#4caf50" strokeWidth={2} name="Revenue ($)" dot={{ fill: '#4caf50', r: 4 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="revenue" stroke="#4caf50" strokeWidth={2} name="Revenue (₱)" dot={{ fill: '#4caf50', r: 4 }} activeDot={{ r: 6 }} />
             </LineChart>
           ) : (
             <BarChart data={monthlyData}>
@@ -300,37 +381,33 @@ function DashboardHome() {
               <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} labelStyle={{ color: '#6ee7ff' }} />
               <Legend />
               <Bar dataKey="sales" fill="#6ee7ff" name="Orders" />
-              <Bar dataKey="revenue" fill="#4caf50" name="Revenue ($)" />
+              <Bar dataKey="revenue" fill="#4caf50" name="Revenue (₱)" />
             </BarChart>
           )}
         </ResponsiveContainer>
       </Paper>
 
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom sx={{ textAlign: 'center' }}>System Overview</Typography>
+      <Paper sx={{ 
+        p: 3, 
+        bgcolor: 'rgba(0, 0, 0, 0.4)', 
+        border: '1px solid rgba(110, 231, 255, 0.1)',
+        borderRadius: 2,
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+      }}>
+        <Typography variant="h6" gutterBottom sx={{ textAlign: 'center', fontWeight: 500, color: '#6ee7ff', mb: 3 }}>System Overview</Typography>
         <ResponsiveContainer width="100%" height={400}>
-          <PieChart>
-            <Pie
-              data={[
-                { name: 'Orders', value: stats.totalOrders },
-                { name: 'Products', value: stats.totalProducts },
-                { name: 'Users', value: stats.totalUsers }
-              ]}
-              cx="50%"
-              cy="50%"
-              labelLine={true}
-              label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(1)}%)`}
-              outerRadius={120}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              <Cell fill="#6ee7ff" />
-              <Cell fill="#4caf50" />
-              <Cell fill="#ff9800" />
-            </Pie>
+          <BarChart data={[
+            { name: 'Orders', value: stats.totalOrders },
+            { name: 'Products', value: stats.totalProducts },
+            { name: 'Users', value: stats.totalUsers }
+          ]}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+            <XAxis dataKey="name" stroke="#999" tick={{ fill: '#999' }} />
+            <YAxis stroke="#999" tick={{ fill: '#999' }} />
             <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} labelStyle={{ color: '#6ee7ff' }} />
             <Legend />
-          </PieChart>
+            <Bar dataKey="value" fill="#6ee7ff" name="Count" />
+          </BarChart>
         </ResponsiveContainer>
       </Paper>
     </Box>
@@ -362,13 +439,31 @@ export default function AdminDashboard() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, bgcolor: '#12161a' }}>
+      <AppBar position="fixed" sx={{ 
+        zIndex: (theme) => theme.zIndex.drawer + 1, 
+        bgcolor: '#12161a',
+        boxShadow: '0 2px 20px rgba(0, 0, 0, 0.5)',
+        borderBottom: '1px solid rgba(110, 231, 255, 0.1)'
+      }}>
         <Toolbar>
-          <DashboardIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <DashboardIcon sx={{ mr: 2, color: '#6ee7ff' }} />
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600, letterSpacing: 0.5 }}>
             Admin Dashboard
           </Typography>
-          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout}>
+          <Button 
+            color="inherit" 
+            startIcon={<LogoutIcon />} 
+            onClick={handleLogout}
+            sx={{
+              borderRadius: 2,
+              px: 2,
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                bgcolor: 'rgba(110, 231, 255, 0.1)',
+                color: '#6ee7ff'
+              }
+            }}
+          >
             Logout
           </Button>
         </Toolbar>
@@ -384,6 +479,7 @@ export default function AdminDashboard() {
             boxSizing: 'border-box',
             bgcolor: '#12161a',
             borderRight: '1px solid rgba(110, 231, 255, 0.2)',
+            backgroundImage: 'linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(110,231,255,0.03) 100%)'
           },
         }}
       >
@@ -391,22 +487,37 @@ export default function AdminDashboard() {
         <Box sx={{ overflow: 'auto', mt: 2 }}>
           <List>
             {menuItems.map((item) => (
-              <ListItem key={item.text} disablePadding>
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   component={Link}
                   to={item.path}
                   selected={location.pathname === item.path}
                   sx={{
+                    mx: 1,
+                    borderRadius: 1,
+                    transition: 'all 0.2s ease',
                     '&.Mui-selected': {
-                      bgcolor: 'rgba(110, 231, 255, 0.1)',
-                      borderRight: '3px solid #6ee7ff',
+                      bgcolor: 'rgba(110, 231, 255, 0.15)',
+                      borderLeft: '3px solid #6ee7ff',
+                      '&:hover': {
+                        bgcolor: 'rgba(110, 231, 255, 0.2)',
+                      }
                     },
+                    '&:hover': {
+                      bgcolor: 'rgba(110, 231, 255, 0.08)',
+                    }
                   }}
                 >
-                  <ListItemIcon sx={{ color: '#6ee7ff' }}>
+                  <ListItemIcon sx={{ color: '#6ee7ff', minWidth: 40 }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.text} />
+                  <ListItemText 
+                    primary={item.text} 
+                    primaryTypographyProps={{ 
+                      fontSize: '0.9rem', 
+                      fontWeight: location.pathname === item.path ? 600 : 400 
+                    }} 
+                  />
                 </ListItemButton>
               </ListItem>
             ))}

@@ -80,7 +80,7 @@ export default function Cart() {
                     {item.brand}
                   </Typography>
                   <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                    ${item.price.toFixed(2)}
+                    ₱{item.price.toFixed(2)}
                   </Typography>
                 </Box>
 
@@ -106,7 +106,7 @@ export default function Cart() {
 
                 {/* Item Total */}
                 <Typography variant="h6" sx={{ minWidth: 100, textAlign: 'right' }}>
-                  ${(item.price * item.quantity).toFixed(2)}
+                  ₱{(item.price * item.quantity).toFixed(2)}
                 </Typography>
 
                 {/* Remove Button */}
@@ -140,7 +140,7 @@ export default function Cart() {
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography>Subtotal:</Typography>
-            <Typography>${getCartTotal().toFixed(2)}</Typography>
+            <Typography>₱{getCartTotal().toFixed(2)}</Typography>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -149,20 +149,20 @@ export default function Cart() {
               {getShippingCost() === 0 ? (
                 <span style={{ color: 'green' }}>FREE</span>
               ) : (
-                `$${getShippingCost().toFixed(2)}`
+                `₱${getShippingCost().toFixed(2)}`
               )}
             </Typography>
           </Box>
 
           {getShippingCost() > 0 && (
             <Alert severity="info" sx={{ my: 1, fontSize: '0.875rem' }}>
-              Free shipping on orders over $100
+              Free shipping on orders over ₱100
             </Alert>
           )}
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography>Tax (10%):</Typography>
-            <Typography>${getTaxAmount().toFixed(2)}</Typography>
+            <Typography>₱{getTaxAmount().toFixed(2)}</Typography>
           </Box>
 
           <Divider sx={{ my: 2 }} />
@@ -170,7 +170,7 @@ export default function Cart() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
             <Typography variant="h6">Total:</Typography>
             <Typography variant="h6" color="primary">
-              ${getFinalTotal().toFixed(2)}
+              ₱{getFinalTotal().toFixed(2)}
             </Typography>
           </Box>
 

@@ -115,7 +115,7 @@ export default function Product() {
               {mouse.brand}
             </Typography>
             <Typography variant="h5" color="primary" gutterBottom>
-              ${mouse.price?.toFixed(2)}
+              ₱{mouse.price?.toFixed(2)}
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Box, Grid, Container, Pagination } from '@mui/material';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { Box, Grid, Container, CircularProgress } from '@mui/material';
 import { getMice } from '../services/api.js';
 import MouseCard from '../components/MouseCard.jsx';
 import Skeleton from '../components/Skeleton.jsx';
@@ -8,6 +8,8 @@ import FilterPanel from '../components/FilterPanel.jsx';
 export default function Catalog() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [filters, setFilters] = useState({
     q: '',
     brand: '',
@@ -25,7 +27,17 @@ export default function Catalog() {
     hasReviews: undefined,
   });
 
-  const [totalPages, setTotalPages] = useState(1);
+  const observer = useRef();
+  const lastItemRef = useCallback(node => {
+    if (loading || loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setFilters(f => ({ ...f, page: f.page + 1 }));
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, loadingMore, hasMore]);
 
   const params = useMemo(() => {
     // map local filter names to backend query params
@@ -48,7 +60,14 @@ export default function Catalog() {
   useEffect(() => {
     let mounted = true;
     (async () => {
-      setLoading(true);
+      // If page is 1, it's a fresh load; otherwise it's loading more
+      if (filters.page === 1) {
+        setLoading(true);
+        setItems([]);
+      } else {
+        setLoadingMore(true);
+      }
+      
       try {
         const res = await getMice(params);
         let list = res.items || [];
@@ -60,20 +79,28 @@ export default function Catalog() {
         if (filters.maxWeight) list = list.filter(i => (i.weightGrams || 0) <= Number(filters.maxWeight));
 
         if (mounted) {
-          setItems(list);
-          setTotalPages(res.totalPages || 1);
+          if (filters.page === 1) {
+            setItems(list);
+          } else {
+            setItems(prev => [...prev, ...list]);
+          }
+          setHasMore(res.page < res.totalPages);
         }
       } catch (err) {
         console.error('Failed to load catalog', err);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     })();
     return () => { mounted = false; };
   }, [params, filters.minDpi, filters.maxDpi, filters.minWeight, filters.maxWeight]);
 
   function handleFilterChange(patch) {
-    setFilters(f => ({ ...f, ...patch }));
+    // Reset to page 1 when filters change
+    setFilters(f => ({ ...f, ...patch, page: 1 }));
   }
 
   function handleClear() {
@@ -97,8 +124,16 @@ export default function Catalog() {
           </Grid>
         ) : (
           <Grid container spacing={2}>
-            {items.map(m => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={m._id || m.slug}>
+            {items.map((m, index) => (
+              <Grid 
+                item 
+                xs={12} 
+                sm={6} 
+                md={4} 
+                lg={3} 
+                key={m._id || m.slug}
+                ref={index === items.length - 1 ? lastItemRef : null}
+              >
                 <MouseCard mouse={m} />
               </Grid>
             ))}
@@ -106,18 +141,12 @@ export default function Catalog() {
         )}
       </Box>
 
-      {/* Pagination */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Pagination
-          count={totalPages}
-          page={filters.page}
-          onChange={(e, p) => handleFilterChange({ page: p })}
-          color="primary"
-          size="large"
-        />
-      </Box>
+      {/* Loading More Indicator */}
+      {loadingMore && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, mb: 2 }}>
+          <CircularProgress />
+        </Box>
+      )}
     </Container>
   );
 }
-
-

@@ -169,8 +169,8 @@ export async function generateOrderReceipt(orderData) {
           .text(item.brand, textX, itemY + 12, { width: nameWidth })
           .fillColor('#666666')
           .text(item.quantity.toString(), 320, itemY, { width: 50 })
-          .text(`$${item.price.toFixed(2)}`, 390, itemY, { width: 80 })
-          .text(`$${itemTotal.toFixed(2)}`, 490, itemY, { width: 80, align: 'right' });
+          .text(`₱${item.price.toFixed(2)}`, 390, itemY, { width: 80 })
+          .text(`₱${itemTotal.toFixed(2)}`, 490, itemY, { width: 80, align: 'right' });
 
         itemY += 50; // Increased spacing for images
 
@@ -198,11 +198,11 @@ export async function generateOrderReceipt(orderData) {
         .fontSize(10)
         .fillColor('#666666')
         .text('Subtotal:', 390, summaryTop)
-        .text(`$${orderData.itemsPrice.toFixed(2)}`, 490, summaryTop, { align: 'right' })
+        .text(`₱${orderData.itemsPrice.toFixed(2)}`, 490, summaryTop, { align: 'right' })
         .text('Shipping:', 390, summaryTop + 20)
-        .text(orderData.shippingPrice === 0 ? 'FREE' : `$${orderData.shippingPrice.toFixed(2)}`, 490, summaryTop + 20, { align: 'right' })
+        .text(orderData.shippingPrice === 0 ? 'FREE' : `₱${orderData.shippingPrice.toFixed(2)}`, 490, summaryTop + 20, { align: 'right' })
         .text('Tax (10%):', 390, summaryTop + 40)
-        .text(`$${orderData.taxPrice.toFixed(2)}`, 490, summaryTop + 40, { align: 'right' });
+        .text(`₱${orderData.taxPrice.toFixed(2)}`, 490, summaryTop + 40, { align: 'right' });
 
       // Total
       doc
@@ -211,7 +211,7 @@ export async function generateOrderReceipt(orderData) {
         .text('Total:', 390, summaryTop + 70)
         .fontSize(14)
         .fillColor('#6ee7ff')
-        .text(`$${orderData.totalPrice.toFixed(2)}`, 490, summaryTop + 70, { align: 'right' });
+        .text(`₱${orderData.totalPrice.toFixed(2)}`, 490, summaryTop + 70, { align: 'right' });
 
       // Footer
       const footerY = doc.page.height - 100;

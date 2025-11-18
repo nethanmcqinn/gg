@@ -363,7 +363,7 @@ export default function Checkout() {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography>${(item.price * item.quantity).toFixed(2)}</Typography>
+                <Typography>₱{(item.price * item.quantity).toFixed(2)}</Typography>
               </Box>
             ))}
           </Box>
@@ -397,23 +397,23 @@ export default function Checkout() {
           {/* Order Summary */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography>Subtotal:</Typography>
-            <Typography>${getCartTotal().toFixed(2)}</Typography>
+            <Typography>₱{getCartTotal().toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography>Shipping:</Typography>
             <Typography>
-              {getShippingCost() === 0 ? 'FREE' : `$${getShippingCost().toFixed(2)}`}
+              {getShippingCost() === 0 ? 'FREE' : `₱${getShippingCost().toFixed(2)}`}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
             <Typography>Tax:</Typography>
-            <Typography>${getTaxAmount().toFixed(2)}</Typography>
+            <Typography>₱{getTaxAmount().toFixed(2)}</Typography>
           </Box>
           <Divider sx={{ my: 1 }} />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             <Typography variant="h6">Total:</Typography>
             <Typography variant="h6" color="primary">
-              ${getFinalTotal().toFixed(2)}
+              ₱{getFinalTotal().toFixed(2)}
             </Typography>
           </Box>
         </Paper>

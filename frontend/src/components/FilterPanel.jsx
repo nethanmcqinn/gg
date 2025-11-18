@@ -119,10 +119,10 @@ export default function FilterPanel({ filters, onChange, onClear }) {
             }}
           >
             <MenuItem value="">Any Price</MenuItem>
-            <MenuItem value="0-50">Under $50</MenuItem>
-            <MenuItem value="50-100">$50 - $100</MenuItem>
-            <MenuItem value="100-150">$100 - $150</MenuItem>
-            <MenuItem value="150-999">$150+</MenuItem>
+            <MenuItem value="0-50">Under ₱50</MenuItem>
+            <MenuItem value="50-100">₱50 - ₱100</MenuItem>
+            <MenuItem value="100-150">₱100 - ₱150</MenuItem>
+            <MenuItem value="150-999">₱150+</MenuItem>
           </Select>
         </FormControl>
 

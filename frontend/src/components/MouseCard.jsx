@@ -71,7 +71,7 @@ export default function MouseCard({ mouse }) {
         <h3 className="card-title">{mouse.name}</h3>
         <p className="muted">{mouse.brand}</p>
         <div className="card-meta">
-          <span>${mouse.price?.toFixed(2)}</span>
+          <span>₱{mouse.price?.toFixed(2)}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {/* Show stars only when there are reviews; otherwise show 'No reviews' */}
             { (mouse.reviewCount ?? 0) > 0 ? (
