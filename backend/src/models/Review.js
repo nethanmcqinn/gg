@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 import yup from 'yup';
+import { Filter } from 'bad-words';
+
+// Initialize bad-words filter
+const filter = new Filter();
 
 // Yup validation schema
 export const reviewValidationSchema = yup.object().shape({
@@ -12,7 +16,12 @@ export const reviewValidationSchema = yup.object().shape({
         .string()
         .required('Comment is required')
         .min(3, 'Comment must be at least 3 characters')
-        .max(500, 'Comment must not exceed 500 characters'),
+        .max(500, 'Comment must not exceed 500 characters')
+        .test('no-profanity', 'Comment contains inappropriate language', function(value) {
+            if (!value) return true;
+            // Check if comment contains profanity
+            return !filter.isProfane(value);
+        }),
 });
 
 // Mongoose schema
@@ -89,6 +98,15 @@ reviewSchema.statics.validate = async function(reviewData) {
 reviewSchema.methods.isOwner = function(userId) {
     return this.user.toString() === userId.toString();
 };
+
+// Pre-save hook to clean bad words (as backup sanitization)
+reviewSchema.pre('save', function(next) {
+    if (this.isModified('comment') && this.comment) {
+        // Clean the comment by replacing profanity with asterisks
+        this.comment = filter.clean(this.comment);
+    }
+    next();
+});
 
 // Virtual field for average rating
 reviewSchema.virtual('formattedDate').get(function() {

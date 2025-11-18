@@ -1,13 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Avatar, Stack, Paper } from '@mui/material';
+import { Box, Button, TextField, Avatar, Stack, Paper, Alert } from '@mui/material';
+import * as yup from 'yup';
 import { useAuth } from '../context/AuthContext.jsx';
 import { authHeaders } from '../services/auth.js';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Validation schema
+const profileSchema = yup.object().shape({
+  name: yup
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(50, 'Name must not exceed 50 characters')
+    .trim(),
+  bio: yup
+    .string()
+    .max(500, 'Bio must not exceed 500 characters'),
+});
+
 export default function Profile() {
-  const { token, isAuthed } = useAuth();
+  const { token, isAuthed, setUserInfo } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -15,6 +28,9 @@ export default function Profile() {
   const [bio, setBio] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [file, setFile] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     if (!isAuthed) navigate('/login');
@@ -52,10 +68,18 @@ export default function Profile() {
 
   async function onSave() {
     setSaving(true);
+    setError('');
+    setErrors({});
+    setSuccess('');
+    
     try {
+      // Validate form data
+      await profileSchema.validate({ name, bio }, { abortEarly: false });
+      
       const url = await uploadProfile();
-      const payload = { name, bio };
+      const payload = { name: name.trim(), bio };
       if (url) payload.photoUrl = url;
+      
       const res = await fetch(`${API_URL}/api/users/me`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
@@ -64,9 +88,36 @@ export default function Profile() {
       const data = await res.json();
       if (res.ok) {
         setPhotoUrl(data.photoUrl || photoUrl);
-        alert('Profile updated');
+        setSuccess('✅ Profile updated successfully!');
+        // Update the global cached user info so navbar/profile reflect the new name/photo immediately
+        if (setUserInfo) {
+          // Prefer to re-fetch the authoritative user profile from server so all fields are consistent
+          try {
+            const meRes = await fetch(`${API_URL}/api/users/me`, { headers: { ...authHeaders(token) } });
+            if (meRes.ok) {
+              const me = await meRes.json();
+              setUserInfo(me);
+            } else {
+              // fallback to merging the known values
+              setUserInfo(prev => ({ ...(prev || {}), name: data.name || name.trim(), photoUrl: data.photoUrl || photoUrl }));
+            }
+          } catch (e) {
+            setUserInfo(prev => ({ ...(prev || {}), name: data.name || name.trim(), photoUrl: data.photoUrl || photoUrl }));
+          }
+        }
       } else {
-        alert(data.message || 'Failed to update');
+        setError(data.message || 'Failed to update');
+      }
+    } catch (e) {
+      if (e.name === 'ValidationError') {
+        // Handle Yup validation errors
+        const validationErrors = {};
+        e.inner.forEach(err => {
+          validationErrors[err.path] = err.message;
+        });
+        setErrors(validationErrors);
+      } else {
+        setError(e.message || 'Failed to update profile');
       }
     } finally {
       setSaving(false);
@@ -78,6 +129,10 @@ export default function Profile() {
   return (
     <Paper sx={{ p: 3 }}>
       <h1>My Profile</h1>
+      
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      
       <Stack direction="row" spacing={3} alignItems="center" sx={{ mb: 3 }}>
         <Avatar src={photoUrl} sx={{ width: 96, height: 96 }} />
         <div>
@@ -89,8 +144,22 @@ export default function Profile() {
         </div>
       </Stack>
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-        <TextField label="Name" value={name} onChange={(e)=>setName(e.target.value)} />
-        <TextField label="Bio" value={bio} onChange={(e)=>setBio(e.target.value)} multiline minRows={3} />
+        <TextField 
+          label="Name" 
+          value={name} 
+          onChange={(e)=>{setName(e.target.value); setErrors({...errors, name: ''});}}
+          error={!!errors.name}
+          helperText={errors.name || 'Min 2 characters, max 50 characters'}
+        />
+        <TextField 
+          label="Bio" 
+          value={bio} 
+          onChange={(e)=>{setBio(e.target.value); setErrors({...errors, bio: ''});}} 
+          multiline 
+          minRows={3}
+          error={!!errors.bio}
+          helperText={errors.bio || 'Max 500 characters'}
+        />
       </Box>
       <Button sx={{ mt: 2 }} variant="contained" onClick={onSave} disabled={saving}>
         {saving ? 'Saving...' : 'Save Changes'}

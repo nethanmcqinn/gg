@@ -2,11 +2,14 @@ import { API_URL } from './api';
 
 async function handleFetch(url, options = {}) {
   try {
+    console.log('Fetching:', url, options);
     const res = await fetch(url, options);
     const json = await res.json();
-    if (!res.ok) return { data: null, error: json?.error || 'Request failed' };
+    console.log('Response:', { status: res.status, ok: res.ok, json });
+    if (!res.ok) return { data: null, error: json?.error || json?.message || 'Request failed' };
     return { data: json.data ?? json, error: null };
   } catch (err) {
+    console.error('Fetch error:', err);
     return { data: null, error: err.message || 'Network error' };
   }
 }
@@ -49,6 +52,13 @@ export const reviewService = {
     return handleFetch(url, options);
   }
   ,
+
+  // Check if current user can review this mouse (must have purchased and delivered)
+  canReview: async (mouseId, token) => {
+    const url = `${API_URL}/api/reviews/${mouseId}/can-review`;
+    const options = { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } };
+    return handleFetch(url, options);
+  },
 
   // Admin: get all reviews (management)
   getAllReviews: async (token) => {

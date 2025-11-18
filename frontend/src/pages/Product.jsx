@@ -4,7 +4,10 @@ import { getMouse } from '../services/api.js';
 import { reviewService } from '../services/review';
 import ReviewForm from '../components/ReviewForm';
 import ReviewList from '../components/ReviewList';
-import { Box, Container, Grid, Typography, Rating, Skeleton } from '@mui/material';
+import ImageSlideshow from '../components/ImageSlideshow';
+import { Box, Container, Grid, Typography, Rating, Skeleton, Button, Snackbar, Alert } from '@mui/material';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
+import { useCart } from '../context/CartContext.jsx';
 
 export default function Product() {
   const { slug } = useParams();
@@ -12,6 +15,8 @@ export default function Product() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const { addToCart } = useCart();
 
   useEffect(() => {
     const fetchMouse = async () => {
@@ -28,6 +33,16 @@ export default function Product() {
 
     fetchMouse();
   }, [slug]);
+
+  // Helper to reload mouse data (used after review create/update/delete to refresh aggregated rating)
+  const reloadMouse = async () => {
+    try {
+      const res = await getMouse(slug);
+      setMouse(res);
+    } catch (err) {
+      console.error('Failed to reload mouse:', err);
+    }
+  };
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -51,18 +66,34 @@ export default function Product() {
 
   const handleReviewSubmitted = (newReview) => {
     setReviews((prevReviews) => [newReview, ...prevReviews]);
+    // refresh mouse to pick up the new aggregated rating
+    reloadMouse();
   };
 
   const handleReviewDeleted = (reviewId) => {
     setReviews((prevReviews) => prevReviews.filter(review => review._id !== reviewId));
+    // refresh mouse to pick up the updated aggregated rating
+    reloadMouse();
   };
 
   const handleReviewUpdated = (updatedReview) => {
     setReviews((prevReviews) => 
-      prevReviews.map(review => 
-        review._id === updatedReview._id ? updatedReview : review
-      )
+      prevReviews.map(review => {
+        if (review._id !== updatedReview._id) return review;
+        // Ensure we keep the original review.user info if the updated payload
+        // doesn't include it (some APIs return the updated review without populating user).
+        const merged = { ...review, ...updatedReview };
+        if (!merged.user) merged.user = review.user;
+        return merged;
+      })
     );
+    // refresh mouse to pick up the updated aggregated rating
+    reloadMouse();
+  };
+
+  const handleAddToCart = () => {
+    addToCart(mouse);
+    setSnackbarOpen(true);
   };
 
   if (loading) return <Skeleton variant="rectangular" height={400} />;
@@ -72,13 +103,7 @@ export default function Product() {
     <Container>
       <Grid container spacing={4}>
         <Grid item xs={12} md={6}>
-          <Box className="product-media">
-            <img 
-              src={mouse.images?.[0]} 
-              alt={mouse.name} 
-              style={{ width: '100%', height: 'auto', maxHeight: 400, objectFit: 'contain' }}
-            />
-          </Box>
+          <ImageSlideshow images={mouse.images} />
         </Grid>
 
         <Grid item xs={12} md={6}>
@@ -94,7 +119,8 @@ export default function Product() {
             </Typography>
 
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Rating value={mouse.rating} precision={0.5} readOnly />
+              {/* Use higher precision so the star display matches the numeric average more closely */}
+              <Rating value={mouse.rating} precision={0.1} readOnly />
               <Typography variant="body2" color="text.secondary" sx={{ ml: 1 }}>
                 ({reviews.length} reviews)
               </Typography>
@@ -115,6 +141,16 @@ export default function Product() {
             <Typography variant="body1" paragraph>
               <strong>RGB:</strong> {mouse.rgb ? 'Yes' : 'No'}
             </Typography>
+
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddShoppingCartIcon />}
+              onClick={handleAddToCart}
+              sx={{ mt: 2 }}
+            >
+              Add to Cart
+            </Button>
           </Box>
         </Grid>
 
@@ -140,6 +176,17 @@ export default function Product() {
           )}
         </Grid>
       </Grid>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity="success" variant="filled">
+          Added to cart!
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

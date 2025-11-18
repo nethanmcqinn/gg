@@ -22,6 +22,7 @@ export default function Catalog() {
     maxDpi: undefined,
     minWeight: undefined,
     maxWeight: undefined,
+    hasReviews: undefined,
   });
 
   const [totalPages, setTotalPages] = useState(1);
@@ -33,6 +34,7 @@ export default function Catalog() {
       brand: filters.brand || undefined,
       connection: filters.connection || undefined,
       rgb: filters.rgb || undefined,
+      hasReviews: filters.hasReviews || undefined,
       sort: filters.sort || undefined,
       page: filters.page || 1,
       limit: filters.limit || 12,
@@ -81,40 +83,39 @@ export default function Catalog() {
   }
 
   return (
-    <Container sx={{ mt: 3 }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={3}>
-          <FilterPanel filters={filters} onChange={handleFilterChange} onClear={handleClear} />
-        </Grid>
+    <Container maxWidth="xl" sx={{ mt: 3, mb: 5 }}>
+      {/* Filter Panel at Top */}
+      <FilterPanel filters={filters} onChange={handleFilterChange} onClear={handleClear} />
 
-        <Grid item xs={12} md={9}>
-          <Box sx={{ mb: 2 }}>
-            {loading ? (
-              <Grid container spacing={2}>
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <Grid item xs={12} sm={6} md={4} key={i}><Skeleton /></Grid>
-                ))}
+      {/* Product Grid */}
+      <Box sx={{ mb: 2 }}>
+        {loading ? (
+          <Grid container spacing={2}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={i}><Skeleton /></Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Grid container spacing={2}>
+            {items.map(m => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={m._id || m.slug}>
+                <MouseCard mouse={m} />
               </Grid>
-            ) : (
-              <Grid container spacing={2}>
-                {items.map(m => (
-                  <Grid item xs={12} sm={6} md={4} key={m._id || m.slug}>
-                    <MouseCard mouse={m} />
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </Box>
+            ))}
+          </Grid>
+        )}
+      </Box>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-            <Pagination
-              count={totalPages}
-              page={filters.page}
-              onChange={(e, p) => handleFilterChange({ page: p })}
-            />
-          </Box>
-        </Grid>
-      </Grid>
+      {/* Pagination */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Pagination
+          count={totalPages}
+          page={filters.page}
+          onChange={(e, p) => handleFilterChange({ page: p })}
+          color="primary"
+          size="large"
+        />
+      </Box>
     </Container>
   );
 }

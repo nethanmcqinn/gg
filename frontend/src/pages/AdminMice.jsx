@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { DataGrid } from '@mui/x-data-grid';
+import * as yup from 'yup';
 import { 
   Box, 
   Button, 
@@ -20,17 +20,60 @@ import {
   ImageListItem,
   Paper,
   IconButton,
-  Tooltip
+  Tooltip,
+  Alert,
+  Chip
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import { authHeaders } from '../services/auth.js';
+import { brandService } from '../services/brand';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Validation schema for product form
+const productSchema = yup.object().shape({
+  name: yup
+    .string()
+    .required('Product name is required')
+    .min(3, 'Name must be at least 3 characters')
+    .max(100, 'Name must not exceed 100 characters'),
+  brand: yup
+    .string()
+    .required('Brand is required')
+    .min(2, 'Brand must be at least 2 characters')
+    .max(50, 'Brand must not exceed 50 characters'),
+  slug: yup
+    .string()
+    .required('Slug is required')
+    .matches(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers, and hyphens only')
+    .min(3, 'Slug must be at least 3 characters'),
+  price: yup
+    .number()
+    .required('Price is required')
+    .positive('Price must be positive')
+    .max(9999, 'Price must not exceed 9999'),
+  sensor: yup
+    .string()
+    .max(100, 'Sensor must not exceed 100 characters'),
+  dpiMax: yup
+    .number()
+    .positive('DPI must be positive')
+    .max(50000, 'DPI seems unrealistic'),
+  weightGrams: yup
+    .number()
+    .positive('Weight must be positive')
+    .max(1000, 'Weight seems unrealistic'),
+  connection: yup
+    .string()
+    .oneOf(['wired', 'wireless'], 'Connection must be wired or wireless'),
+});
 
 export default function AdminMice() {
   const { token, isAuthed, setToken } = useAuth();
@@ -43,14 +86,13 @@ export default function AdminMice() {
     name: '', brand: '', slug: '', price: '', sensor: '', 
     dpiMax: '', weightGrams: '', connection: 'wired', rgb: false, images: []
   });
+  const [brands, setBrands] = useState([]);
   const [files, setFiles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [selectedRows, setSelectedRows] = useState([]);
   const [expandedRows, setExpandedRows] = useState(new Set());
-
-  useEffect(() => {
-    if (!isAuthed) navigate('/admin');
-  }, [isAuthed, navigate]);
+  const [formErrors, setFormErrors] = useState({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -58,6 +100,13 @@ export default function AdminMice() {
       const res = await fetch(`${API_URL}/api/mice?limit=100`);
       const data = await res.json();
       setItems(data.items || []);
+      // load brands for brand dropdown
+      try {
+        const { data: bdata } = await brandService.getAll();
+        setBrands(bdata || []);
+      } catch (e) {
+        console.warn('Failed to load brands', e);
+      }
     } catch (e) {
       console.error('Load error:', e);
     } finally {
@@ -72,6 +121,8 @@ export default function AdminMice() {
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }));
+    // Clear error for this field
+    setFormErrors(prev => ({ ...prev, [name]: '' }));
   }
 
   function handleFileChange(e) {
@@ -105,8 +156,23 @@ export default function AdminMice() {
   }
 
   async function saveMouse() {
+    setHasSubmitted(true);
     setSaving(true);
+    setFormErrors({});
+    
     try {
+      // Validate form data
+      await productSchema.validate({
+        name: form.name,
+        brand: form.brand,
+        slug: form.slug,
+        price: Number(form.price) || 0,
+        sensor: form.sensor,
+        dpiMax: Number(form.dpiMax) || 0,
+        weightGrams: Number(form.weightGrams) || 0,
+        connection: form.connection,
+      }, { abortEarly: false });
+      
       const imageUrls = await uploadImages();
       const payload = {
         ...form,
@@ -136,20 +202,36 @@ export default function AdminMice() {
       handleCloseDialog();
       await load();
     } catch (e) {
-      console.error('Save error:', e);
-      alert('Failed to save mouse');
+      if (e.name === 'ValidationError') {
+        // Handle Yup validation errors
+        const validationErrors = {};
+        e.inner.forEach(err => {
+          validationErrors[err.path] = err.message;
+        });
+        setFormErrors(validationErrors);
+      } else {
+        console.error('Save error:', e);
+        alert('Failed to save mouse: ' + e.message);
+      }
     } finally {
       setSaving(false);
     }
   }
 
-  function handleOpenDialog(mouse = null) {
+  // mouse: optional mouse object to prefill
+  // options: { createCopy: boolean } - if true, open dialog in CREATE mode but prefill form from mouse
+  function handleOpenDialog(mouse = null, options = {}) {
+    setFormErrors({}); // Clear validation errors
+    setHasSubmitted(false); // Reset submission state
+    setHasSubmitted(false); // Reset submission state
+    const createCopy = options.createCopy === true;
     if (mouse) {
-      setEditingId(mouse._id);
+      // If createCopy is true, we prefill form but keep editingId null so it creates a new mouse
+      setEditingId(createCopy ? null : mouse._id);
       setForm({
         name: mouse.name || '',
         brand: mouse.brand || '',
-        slug: mouse.slug || '',
+        slug: createCopy ? `${mouse.slug}-copy` : mouse.slug || '',
         price: mouse.price || '',
         sensor: mouse.sensor || '',
         dpiMax: mouse.dpiMax || '',
@@ -189,19 +271,93 @@ export default function AdminMice() {
   }
 
   async function bulkDelete() {
-    if (selectedRows.length === 0) return;
-    if (!confirm(`Delete ${selectedRows.length} selected mice?`)) return;
-    try {
-      await fetch(`${API_URL}/api/mice/bulk-delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
-        body: JSON.stringify({ ids: selectedRows }),
-      });
-      setSelectedRows([]);
-      await load();
-    } catch (e) {
-      console.error('Bulk delete error:', e);
+    if (selectedRows.length === 0) {
+      alert('Please select mice to delete');
+      return;
     }
+    
+    if (!confirm(`⚠️ Are you sure you want to delete ${selectedRows.length} selected ${selectedRows.length === 1 ? 'mouse' : 'mice'}?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+      try {
+        setLoading(true);
+        const uniqueIds = Array.from(new Set(selectedRows.map(String)));
+        if (!token) {
+          alert('You must be logged in as admin to delete mice');
+          return;
+        }
+
+        // Try server bulk endpoint first
+        try {
+          const bulkRes = await fetch(`${API_URL}/api/mice/bulk-delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+            body: JSON.stringify({ ids: uniqueIds }),
+          });
+          if (bulkRes.ok) {
+            const result = await bulkRes.json();
+            // If server deleted all, we're done
+            if (result.deletedCount === uniqueIds.length) {
+              alert(`✅ Deleted ${result.deletedCount} / ${uniqueIds.length} mice`);
+              setSelectedRows([]);
+              await load();
+              return;
+            }
+            // If partial, determine which remain and fall back to per-id deletes for them
+            // Fetch current list and compute remaining ids
+            const listRes = await fetch(`${API_URL}/api/mice?limit=200`);
+            const listJson = await listRes.json();
+            const items = listJson.items || listJson;
+            const remaining = uniqueIds.filter(id => items.some(it => String(it._id) === String(id)));
+            if (remaining.length === 0) {
+              alert(`✅ Deleted ${result.deletedCount} / ${uniqueIds.length} mice`);
+              setSelectedRows([]);
+              await load();
+              return;
+            }
+            // Replace uniqueIds with remaining to delete individually
+            uniqueIds.splice(0, uniqueIds.length, ...remaining);
+          }
+        } catch (e) {
+          console.warn('Bulk endpoint failed or returned non-ok; will delete per-id', e);
+        }
+
+        // Now delete remaining ids individually (concurrent)
+        const promises = uniqueIds.map(async (id) => {
+          try {
+            const res = await fetch(`${API_URL}/api/mice/${id}`, {
+              method: 'DELETE',
+              headers: { ...authHeaders(token) },
+            });
+            if (!res.ok) {
+              let msg = 'Failed';
+              try { const j = await res.json(); msg = j.message || msg; } catch {}
+              return { id, ok: false, status: res.status, message: msg };
+            }
+            return { id, ok: true };
+          } catch (err) {
+            return { id, ok: false, status: 0, message: err.message || 'Network error' };
+          }
+        });
+
+        const results = await Promise.all(promises);
+        const failed = results.filter(r => !r.ok);
+        const successCount = results.length - failed.length;
+
+        if (failed.length === 0) {
+          alert(`✅ Deleted ${successCount} / ${results.length} mice`);
+        } else {
+          alert(`✅ Deleted ${successCount} / ${results.length} mice\nFailed: ${failed.map(f => `${f.id} (${f.message})`).join(', ')}`);
+        }
+
+        setSelectedRows([]);
+        await load();
+      } catch (e) {
+        console.error('Bulk delete error:', e);
+        alert(`❌ Error: ${e.message}`);
+      } finally {
+        setLoading(false);
+      }
   }
 
   function handleRemoveImage(index) {
@@ -297,28 +453,70 @@ export default function AdminMice() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
         <h1>Admin • Mice Management</h1>
         <Stack direction="row" spacing={2}>
-          {selectedRows.length > 0 && (
-            <Button
-              variant="contained"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={bulkDelete}
-            >
-              Delete Selected ({selectedRows.length})
-            </Button>
-          )}
+          <Button
+            variant="contained"
+            color="error"
+            size="large"
+            startIcon={<DeleteSweepIcon />}
+            onClick={bulkDelete}
+            disabled={selectedRows.length === 0}
+            sx={{
+              animation: selectedRows.length > 0 ? 'pulse 2s infinite' : 'none',
+              '@keyframes pulse': {
+                '0%, 100%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.02)' }
+              }
+            }}
+          >
+            Bulk Delete
+            <Chip 
+              label={selectedRows.length} 
+              size="small" 
+              sx={{ ml: 1, bgcolor: 'white', color: 'error.main', fontWeight: 'bold' }}
+            />
+          </Button>
+          {/* <Tooltip title={`Delete ${selectedRows.length} selected`}>
+            <span>
+              <IconButton
+                color="error"
+                onClick={bulkDelete}
+                size="large"
+                sx={{ ml: 1 }}
+                disabled={selectedRows.length === 0}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </span>
+          </Tooltip> */}
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
+            onClick={() => {
+              // If exactly one row is selected, prefill create form from it (duplicate)
+              if (selectedRows.length === 1) {
+                const sel = items.find(it => String(it._id) === String(selectedRows[0]));
+                if (sel) {
+                  // open dialog in create (not edit) mode but with form prefilled
+                  handleOpenDialog(sel, { createCopy: true });
+                  return;
+                }
+              }
+              handleOpenDialog();
+            }}
           >
             Add Mouse
           </Button>
-          <Button variant="outlined" onClick={() => { setToken(''); navigate('/admin'); }}>
+          {/* <Button variant="outlined" onClick={() => { setToken(''); navigate('/admin'); }}>
             Logout
-          </Button>
+          </Button> */}
         </Stack>
       </Box>
+
+      {selectedRows.length > 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          {selectedRows.length} {selectedRows.length === 1 ? 'mouse' : 'mice'} selected. Click "Bulk Delete" to remove them.
+        </Alert>
+      )}
 
       <Paper sx={{ height: 600, width: '100%' }}>
         <DataGrid
@@ -326,10 +524,15 @@ export default function AdminMice() {
           columns={columns}
           loading={loading}
           checkboxSelection
-          hideFooterSelectedRowCount
+          disableRowSelectionOnClick
+          getRowId={(row) => row._id}
           onRowSelectionModelChange={(newSelection) => {
-            // Uncontrolled selection: we capture selected ids without controlling the grid state
-            setSelectedRows(Array.isArray(newSelection) ? newSelection : []);
+            console.log('Selection changed:', newSelection);
+            
+            const selectedIds = newSelection?.ids 
+              ? Array.from(newSelection.ids) 
+              : (Array.isArray(newSelection) ? newSelection : []);
+            setSelectedRows(selectedIds);
           }}
           pageSizeOptions={[10, 25, 50, 100]}
           initialState={{
@@ -377,15 +580,89 @@ export default function AdminMice() {
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editingId ? 'Edit Mouse' : 'Create Mouse'}</DialogTitle>
         <DialogContent>
+          {hasSubmitted && Object.keys(formErrors).length > 0 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Please fix the validation errors below
+            </Alert>
+          )}
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 1 }}>
-            <TextField name="name" label="Name" value={form.name} onChange={handleChange} fullWidth />
-            <TextField name="brand" label="Brand" value={form.brand} onChange={handleChange} fullWidth />
-            <TextField name="slug" label="Slug" value={form.slug} onChange={handleChange} fullWidth />
-            <TextField name="price" type="number" label="Price" value={form.price} onChange={handleChange} fullWidth />
-            <TextField name="sensor" label="Sensor" value={form.sensor} onChange={handleChange} fullWidth />
-            <TextField name="dpiMax" type="number" label="Max DPI" value={form.dpiMax} onChange={handleChange} fullWidth />
-            <TextField name="weightGrams" type="number" label="Weight (g)" value={form.weightGrams} onChange={handleChange} fullWidth />
-            <FormControl fullWidth>
+            <TextField 
+              name="name" 
+              label="Name" 
+              value={form.name} 
+              onChange={handleChange} 
+              fullWidth 
+              error={!!formErrors.name}
+              helperText={formErrors.name || 'Required'}
+            />
+            <FormControl fullWidth error={!!formErrors.brand}>
+              <InputLabel id="brand-select-label">Brand</InputLabel>
+              <Select
+                labelId="brand-select-label"
+                label="Brand"
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+              >
+                {brands.map(b => (
+                  <MenuItem key={b._id} value={b.name}>{b.name}</MenuItem>
+                ))}
+              </Select>
+              {formErrors.brand ? (
+                <p style={{ color: '#f44336', fontSize: 12, margin: '6px 14px 0' }}>{formErrors.brand}</p>
+              ) : (
+                <p style={{ color: '#999', fontSize: 12, margin: '6px 14px 0' }}>Required</p>
+              )}
+            </FormControl>
+            <TextField 
+              name="slug" 
+              label="Slug" 
+              value={form.slug} 
+              onChange={handleChange} 
+              fullWidth 
+              error={!!formErrors.slug}
+              helperText={formErrors.slug || 'Lowercase, numbers, hyphens only'}
+            />
+            <TextField 
+              name="price" 
+              type="number" 
+              label="Price" 
+              value={form.price} 
+              onChange={handleChange} 
+              fullWidth 
+              error={!!formErrors.price}
+              helperText={formErrors.price || 'Required'}
+            />
+            <TextField 
+              name="sensor" 
+              label="Sensor" 
+              value={form.sensor} 
+              onChange={handleChange} 
+              fullWidth 
+              error={!!formErrors.sensor}
+              helperText={formErrors.sensor}
+            />
+            <TextField 
+              name="dpiMax" 
+              type="number" 
+              label="Max DPI" 
+              value={form.dpiMax} 
+              onChange={handleChange} 
+              fullWidth 
+              error={!!formErrors.dpiMax}
+              helperText={formErrors.dpiMax}
+            />
+            <TextField 
+              name="weightGrams" 
+              type="number" 
+              label="Weight (g)" 
+              value={form.weightGrams} 
+              onChange={handleChange} 
+              fullWidth 
+              error={!!formErrors.weightGrams}
+              helperText={formErrors.weightGrams}
+            />
+            <FormControl fullWidth error={!!formErrors.connection}>
               <InputLabel>Connection</InputLabel>
               <Select name="connection" value={form.connection} onChange={handleChange} label="Connection">
                 <MenuItem value="wired">Wired</MenuItem>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { reviewService } from '../services/review';
 import {
@@ -25,10 +25,23 @@ const reviewSchema = yup.object().shape({
     .max(500, 'Comment must not exceed 500 characters'),
 });
 
-export default function ReviewForm({ mouseId, onReviewSubmitted }) {
+export default function ReviewForm({ mouseId, onReviewSubmitted, existingReview = null, onClose = null }) {
   const { user, token } = useAuth();
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
+  const [canReview, setCanReview] = useState(null); // null = unknown/loading, true/false = allowed
+  const [canReviewReason, setCanReviewReason] = useState('');
+  const [rating, setRating] = useState(existingReview?.rating || 0);
+  const [comment, setComment] = useState(existingReview?.comment || '');
+  // editingReviewId derived from prop so it updates when prop changes
+  const editingReviewId = existingReview?._id || null;
+  // sync form fields when existingReview changes
+  useEffect(() => {
+    if (existingReview) {
+      setRating(existingReview.rating || 0);
+      setComment(existingReview.comment || '');
+      // allow editing even if canReview would be false because user already reviewed
+      setCanReview(true);
+    }
+  }, [existingReview]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -43,24 +56,41 @@ export default function ReviewForm({ mouseId, onReviewSubmitted }) {
       // Validate form data
       await reviewSchema.validate({ rating, comment });
 
-      // Submit review (pass token for authenticated route)
-      const { data, error: submitError } = await reviewService.createReview(
-        mouseId,
-        { rating, comment },
-        token
-      );
+      console.log('Submitting review:', { mouseId, rating, comment, token: token ? 'present' : 'missing' });
+
+      // Submit or update review (pass token for authenticated route)
+      let data, submitError;
+      if (editingReviewId) {
+        const res = await reviewService.updateReview(editingReviewId, { rating, comment }, token);
+        data = res.data; submitError = res.error;
+      } else {
+        const res = await reviewService.createReview(mouseId, { rating, comment }, token);
+        data = res.data; submitError = res.error;
+      }
+
+      console.log('Review response:', { data, error: submitError });
 
       if (submitError) {
-        setError(submitError);
+        // Check if it's a profanity error
+        if (typeof submitError === 'string' && submitError.toLowerCase().includes('inappropriate')) {
+          setError('⚠️ ' + submitError + ' Please edit your review and avoid using offensive language.');
+        } else {
+          setError(submitError);
+        }
       } else {
-        setSuccess('Review submitted successfully!');
-        setRating(0);
-        setComment('');
+        setSuccess(editingReviewId ? '✅ Review updated successfully!' : '✅ Review submitted successfully!');
+        if (!editingReviewId) {
+          setRating(0);
+          setComment('');
+        }
         if (onReviewSubmitted) {
           onReviewSubmitted(data);
         }
+        // close dialog if provided
+        if (onClose) onClose();
       }
     } catch (validationError) {
+      console.error('Validation error:', validationError);
       setError(validationError.message);
     } finally {
       setIsSubmitting(false);
@@ -71,6 +101,59 @@ export default function ReviewForm({ mouseId, onReviewSubmitted }) {
     return (
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography>Please log in to leave a review.</Typography>
+      </Paper>
+    );
+  }
+
+  // Check eligibility for reviewing. If editing an existing review, skip the can-review check
+  // so the user is allowed to edit their own review.
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      if (editingReviewId) {
+        // If we're editing, allow editing immediately and skip server check.
+        if (!mounted) return;
+        setCanReview(true);
+        setCanReviewReason('');
+        return;
+      }
+
+      try {
+        const { data, error } = await reviewService.canReview(mouseId, token);
+        if (!mounted) return;
+        if (error) {
+          // treat errors as not allowed (but still show message)
+          setCanReview(false);
+          setCanReviewReason(error);
+        } else if (data) {
+          setCanReview(!!data.canReview);
+          setCanReviewReason(data.reason || '');
+        } else {
+          setCanReview(false);
+        }
+      } catch (err) {
+        if (!mounted) return;
+        setCanReview(false);
+        setCanReviewReason(err.message || 'error');
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, [mouseId, token, editingReviewId]);
+
+  if (canReview === false) {
+    // Show a helpful message when user can't review
+    let message = 'You can only review products that you have ordered and received.';
+    if (canReviewReason === 'already_reviewed') message = 'You have already reviewed this product.';
+    if (canReviewReason === 'not_purchased_or_not_delivered') message = 'You can only review products that are in your order history and marked as delivered.';
+    if (canReviewReason && !['already_reviewed','not_purchased_or_not_delivered'].includes(canReviewReason) && typeof canReviewReason === 'string') {
+      message = canReviewReason;
+    }
+
+    return (
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography>{message}</Typography>
       </Paper>
     );
   }
@@ -114,8 +197,8 @@ export default function ReviewForm({ mouseId, onReviewSubmitted }) {
           label="Your Review"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          error={!!error && error.includes('Comment')}
-          helperText="Minimum 3 characters, maximum 500 characters"
+          error={!!error && (error.includes('Comment') || error.includes('inappropriate'))}
+          helperText="Min 3, max 500 characters. Please keep your review respectful and avoid profanity."
           sx={{ mb: 2 }}
         />
 

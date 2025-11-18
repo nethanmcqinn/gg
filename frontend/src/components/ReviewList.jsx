@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { reviewService } from '../services/review';
+import ReviewForm from './ReviewForm';
 import {
   Box,
   Typography,
@@ -21,19 +22,19 @@ export default function ReviewList({ reviews, mouseId, onReviewDeleted, onReview
   const { user, token } = useAuth();
   const [selectedReview, setSelectedReview] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [error, setError] = useState('');
 
   const handleDelete = async () => {
     try {
-      const { error } = await reviewService.deleteReview(selectedReview._id, token);
+      const { data, error } = await reviewService.deleteReview(selectedReview._id, token);
       if (error) {
         setError(error);
       } else {
+        const deletedId = data?.deletedId || selectedReview._id;
         setIsDeleteDialogOpen(false);
         setSelectedReview(null);
-        if (onReviewDeleted) {
-          onReviewDeleted(selectedReview._id);
-        }
+        if (onReviewDeleted) onReviewDeleted(deletedId);
       }
     } catch (err) {
       setError('Failed to delete review');
@@ -41,7 +42,9 @@ export default function ReviewList({ reviews, mouseId, onReviewDeleted, onReview
   };
 
   const canModifyReview = (review) => {
-    return user && (user.isAdmin || user.id === review.user._id);
+    // Support multiple shapes: review.user may be populated object or just an id
+    const reviewUserId = review?.user?._id || review?.user || review?.userId || null;
+    return user && (user.isAdmin || user.id === reviewUserId);
   };
 
   if (!reviews?.length) {
@@ -71,20 +74,25 @@ export default function ReviewList({ reviews, mouseId, onReviewDeleted, onReview
               <Box>
                 <Rating value={review.rating} readOnly precision={1} />
                 <Typography variant="body2" color="text.secondary">
-                  By {review.user.username} on {new Date(review.date).toLocaleDateString()}
+                  By {(
+                    // prefer populated username, fall back to string id or 'You'/Anonymous
+                    review?.user?.username || (typeof review?.user === 'string' ? (review.user === (user?.id || user?._id) ? 'You' : review.user) : 'Anonymous')
+                  )} on {new Date(review.date || review.createdAt || Date.now()).toLocaleDateString()}
                 </Typography>
               </Box>
 
               {canModifyReview(review) && (
                 <Box>
-                  {user.id === review.user._id && (
-                    <IconButton
-                      size="small"
-                      onClick={() => onReviewUpdated && onReviewUpdated(review)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                  )}
+                  {/* Edit button opens edit dialog */}
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setSelectedReview(review);
+                      setIsEditDialogOpen(true);
+                    }}
+                  >
+                    <EditIcon />
+                  </IconButton>
                   <IconButton
                     size="small"
                     onClick={() => {
@@ -117,6 +125,28 @@ export default function ReviewList({ reviews, mouseId, onReviewDeleted, onReview
             Delete
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Edit Review Dialog */}
+      <Dialog open={isEditDialogOpen} onClose={() => setIsEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Review</DialogTitle>
+        <DialogContent>
+          {selectedReview && (
+            <ReviewForm
+              mouseId={mouseId}
+              existingReview={selectedReview}
+              onReviewSubmitted={(updated) => {
+                if (onReviewUpdated) onReviewUpdated(updated);
+                setIsEditDialogOpen(false);
+                setSelectedReview(null);
+              }}
+              onClose={() => {
+                setIsEditDialogOpen(false);
+                setSelectedReview(null);
+              }}
+            />
+          )}
+        </DialogContent>
       </Dialog>
     </Box>
   );

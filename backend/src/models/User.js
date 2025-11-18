@@ -9,9 +9,13 @@ const userSchema = new mongoose.Schema(
     bio: { type: String, default: '' },
     photoUrl: { type: String, default: '' },
     isVerified: { type: Boolean, default: false },
+    isActive: { type: Boolean, default: true },
     verificationToken: { type: String },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
+    // Google OAuth fields
+    googleId: { type: String, unique: true, sparse: true },
+    photoURL: { type: String, default: '' },
   },
   { timestamps: true }
 );

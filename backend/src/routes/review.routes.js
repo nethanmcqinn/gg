@@ -1,9 +1,44 @@
 import express from 'express';
+import mongoose from 'mongoose';
+import { Filter } from 'bad-words';
 import { authenticate as auth } from '../middleware/auth.js';
 import { Review } from '../models/Review.js';
 import { Mouse } from '../models/Mouse.js';
+import Order from '../models/Order.js';
 
 const router = express.Router();
+const profanityFilter = new Filter();
+
+// Helper: recalculate aggregated rating for a mouse and persist to Mouse.rating
+async function recalcMouseRating(mouseId) {
+    try {
+        // consider only approved reviews for public rating
+        const agg = await Review.aggregate([
+            { $match: { mouse: mongoose.Types.ObjectId(mouseId), status: 'approved' } },
+            { $group: { _id: '$mouse', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+        ]);
+        if (agg && agg.length) {
+            // Round to one decimal so UI stars (which display to one decimal) match stored value
+            const avg = Math.round((agg[0].avgRating + Number.EPSILON) * 10) / 10; // one decimal
+                await Mouse.findByIdAndUpdate(mouseId, { rating: avg });
+        } else {
+            // no approved reviews -> reset rating to 0
+            await Mouse.findByIdAndUpdate(mouseId, { rating: 0 });
+        }
+    } catch (err) {
+        console.warn('Failed to recalc mouse rating', err.message || err);
+    }
+}
+
+// Helper function to check for profanity
+function checkProfanity(text) {
+    return profanityFilter.isProfane(text);
+}
+
+// Helper function to clean profanity
+function cleanProfanity(text) {
+    return profanityFilter.clean(text);
+}
 
 // Create a review
 router.post('/:mouseId', auth, async (req, res) => {
@@ -21,6 +56,26 @@ router.post('/:mouseId', auth, async (req, res) => {
         const existingReview = await Review.findOne({ user: userId, mouse: mouseId });
         if (existingReview) {
             return res.status(400).json({ error: 'You have already reviewed this mouse' });
+        }
+
+        // Ensure the user actually purchased and received (delivered) this mouse
+        // Look for an order by this user that contains the mouse and is delivered
+        const purchasedDeliveredOrder = await Order.findOne({
+            user: userId,
+            'orderItems.mouse': mouseId,
+            $or: [ { status: 'delivered' }, { isDelivered: true } ]
+        });
+
+        if (!purchasedDeliveredOrder) {
+            return res.status(403).json({ error: 'You may only review products you have ordered and received' });
+        }
+
+        // Check for profanity in comment before validation
+        if (req.body.comment && checkProfanity(req.body.comment)) {
+            return res.status(400).json({ 
+                error: 'Your comment contains inappropriate language. Please remove profanity and try again.',
+                profanityDetected: true
+            });
         }
 
         // Validate review data
@@ -41,7 +96,43 @@ router.post('/:mouseId', auth, async (req, res) => {
         // Populate user details
         await review.populate('user', 'username');
 
+    // Recalculate mouse aggregated rating
+    await recalcMouseRating(mouseId);
+
         res.status(201).json({ data: review });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Check if current user can review a specific mouse
+router.get('/:mouseId/can-review', auth, async (req, res) => {
+    try {
+        const mouseId = req.params.mouseId;
+        const userId = req.user.id;
+
+        // Check if mouse exists
+        const mouse = await Mouse.findById(mouseId);
+        if (!mouse) return res.status(404).json({ error: 'Mouse not found' });
+
+        // Check if user already reviewed this mouse
+        const existingReview = await Review.findOne({ user: userId, mouse: mouseId });
+        if (existingReview) {
+            return res.json({ canReview: false, reason: 'already_reviewed' });
+        }
+
+        // Check for a delivered order containing the mouse
+        const purchasedDeliveredOrder = await Order.findOne({
+            user: userId,
+            'orderItems.mouse': mouseId,
+            $or: [ { status: 'delivered' }, { isDelivered: true } ]
+        });
+
+        if (!purchasedDeliveredOrder) {
+            return res.json({ canReview: false, reason: 'not_purchased_or_not_delivered' });
+        }
+
+        return res.json({ canReview: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -144,6 +235,14 @@ router.put('/:reviewId', auth, async (req, res) => {
             return res.status(403).json({ error: 'Unauthorized to update this review' });
         }
 
+        // Check for profanity in comment before validation
+        if (req.body.comment && checkProfanity(req.body.comment)) {
+            return res.status(400).json({ 
+                error: 'Your comment contains inappropriate language. Please remove profanity and try again.',
+                profanityDetected: true
+            });
+        }
+
         // Validate update data
         const { data: validatedData, error: validationError } = await Review.validate(req.body);
         if (validationError) {
@@ -154,7 +253,10 @@ router.put('/:reviewId', auth, async (req, res) => {
         Object.assign(review, validatedData);
         await review.save();
 
-        res.json({ data: review });
+    // Recalculate mouse rating after update
+    await recalcMouseRating(review.mouse);
+
+    res.json({ data: review });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -177,7 +279,11 @@ router.delete('/:reviewId', auth, async (req, res) => {
         }
 
         await review.deleteOne();
-        res.json({ data: 'Review deleted successfully' });
+    // Recalculate mouse rating after deletion
+    await recalcMouseRating(review.mouse);
+
+    // return the deleted review id so clients can reliably remove it from UI
+    res.json({ data: { deletedId: review._id } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
